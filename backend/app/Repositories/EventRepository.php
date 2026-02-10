@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 class EventRepository implements EventRepositoryInterface {
     
  public function create(array $data): Event {
+
     return Event::create($data);
  }
 
