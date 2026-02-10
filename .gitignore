@@ -1,0 +1,12 @@
+# Docker
+docker/data
+docker/mysql
+docker/redis
+
+#Env
+.env
+.env.*
+
+# IDE
+.idea
+.vscode
