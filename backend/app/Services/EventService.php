@@ -2,16 +2,58 @@
 
 namespace App\Services;
 
+use App\Models\Event;
+use App\Models\User;
 use App\Repositories\Contracts\EventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EventService
 {
     public function __construct(
-        private  EventRepositoryInterface $eventRepo
+        private  EventRepositoryInterface $eventsRepo
     ) {}
 
-    
+    public function create(array $data, User $user): Event {
+        $data['user_id'] = $user->id;
+
+        return $this->eventsRepo->create($data);
+    }
+
+    public function update(int $id, array $data, User $user): Event {
+        $event = $this->eventsRepo->findUserEvent($user->id, $id);
+
+        if (!$event) {
+            throw new NotFoundHttpException('Event is not found');
+        };
+
+        return $this->eventsRepo->update($event, $data);
+    }
+
+    public function delete($id, User $user): bool {
+        $event = $this->eventsRepo->findUserEvent($user->id, $id);
+
+        if (!$event) {
+            throw new NotFoundHttpException('Event is not found');
+        };
+
+        return $this->eventsRepo->delete($event);
+    }
+
+    public function list(User $user, string $from, string $to): Collection {
+        return $this->eventsRepo->getBetweenDates($user->id, $from, $to);
+    }
+
+    public function complete(int $id, User $user): Event {
+        $event = $this->eventsRepo->findUserEvent($user->id, $id);
+
+        if (!$event) {
+            throw new NotFoundHttpException('Event is not found');
+        };
+
+        return $this->eventsRepo->update($event, ['is_completed' => true]);
+    }
 }
