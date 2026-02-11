@@ -39,6 +39,16 @@ class EventController extends Controller
         ]);
     }
 
+     public function show(Request $request, int $id): JsonResponse {
+
+        $event = $this->eventService->show($request->user(), $id);
+
+        return response()->json([
+            'message' => 'Successfully fetched single event',
+            'event' => new EventResource($event),
+        ]);
+    }
+
     public function update(UpdateEventRequest $request, int $id): JsonResponse
     {
         $event = $this->eventService->update(

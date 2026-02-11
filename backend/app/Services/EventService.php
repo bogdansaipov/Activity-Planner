@@ -30,6 +30,12 @@ class EventService
             throw new NotFoundHttpException('Event is not found');
         };
 
+        if ($event->is_completed) {
+            throw ValidationException::withMessages([
+                'event' => ['Completed event cannot be modified']
+            ]);
+        }
+
         return $this->eventsRepo->update($event, $data);
     }
 
@@ -40,11 +46,28 @@ class EventService
             throw new NotFoundHttpException('Event is not found');
         };
 
+         if ($event->is_completed) {
+            throw ValidationException::withMessages([
+                'event' => ['Completed event cannot be removed']
+            ]);
+        }
+
         return $this->eventsRepo->delete($event);
     }
 
     public function list(User $user, string $from, string $to): Collection {
         return $this->eventsRepo->getBetweenDates($user->id, $from, $to);
+    }
+
+    public function show(User $user, int $id): Event {
+
+         $event = $this->eventsRepo->findUserEvent($user->id, $id);
+
+        if (!$event) {
+            throw new NotFoundHttpException('Event is not found');
+        }
+
+        return $event;
     }
 
     public function complete(int $id, User $user): Event {
@@ -53,6 +76,12 @@ class EventService
         if (!$event) {
             throw new NotFoundHttpException('Event is not found');
         };
+
+         if ($event->is_completed) {
+            throw ValidationException::withMessages([
+                'event' => ['Completed event cannot be completed again']
+            ]);
+        }
 
         return $this->eventsRepo->update($event, ['is_completed' => true]);
     }
