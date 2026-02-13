@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendEventReminderJob;
 use App\Models\Event;
 use App\Models\User;
 use App\Repositories\Contracts\EventRepositoryInterface;
@@ -20,7 +21,18 @@ class EventService
     public function create(array $data, User $user): Event {
         $data['user_id'] = $user->id;
 
-        return $this->eventsRepo->create($data);
+        $event = $this->eventsRepo->create($data);
+
+        $reminderTime = $event->scheduled_at
+        ->copy()
+        ->subMinutes($event->remind_before_minutes);
+
+        if ($reminderTime->isFuture()) {
+        SendEventReminderJob::dispatch($event)
+            ->delay($reminderTime);
+        }
+
+        return $event;
     }
 
     public function update(int $id, array $data, User $user): Event {
