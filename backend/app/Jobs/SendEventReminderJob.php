@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Event;
 use App\Models\EventNotification;
+use App\Services\Telegram\TelegramService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -13,38 +14,33 @@ class SendEventReminderJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public Event $event) {}
+    public function __construct(public EventNotification $eventNotification) {}
 
-    public function handle(): void
+    public function handle(TelegramService $telegramService): void
     {
-        DB::transaction(function () {
+        $event = $this->eventNotification->event;
+        $user = $event->user;
 
-            $exists = EventNotification::where('event_id', $this->event->id)
-                ->where('scheduled_for', $this->event->scheduled_at
-                    ->copy()
-                    ->subMinutes($this->event->remind_before_minutes))
-                ->exists();
+        if (!$user->telegram_chat_id) {
+            return;
+        }
 
-            if ($exists) {
-                return;
-            }
+        $message =
+            "⏰ <b>Reminder</b>
 
-            $user = $this->event->user;
+            Event: <b>{$event->title}</b>
+            Time: {$event->scheduled_at->format('H:i')}
+            Duration: {$event->duration_minutes} minutes";
 
-            logger()->info("Reminder sent to {$user->username} about {$this->event->title}");
+        $telegramService->sendMessage($user->telegram_chat_id, $message);
 
-            EventNotification::create([
-                'event_id' => $this->event->id,
-                'scheduled_for' => $this->event->scheduled_at
-                    ->copy()
-                    ->subMinutes($this->event->remind_before_minutes),
-                'sent_at' => now(),
-            ]);
-        });
+        $this->eventNotification->update([
+            'sent_at' => now()
+        ]);
     }
 
     public function failed(Throwable $exception): void
     {
-        logger()->error("Reminder failed for event {$this->event->id}");
+        logger()->error("Reminder failed for event {$this->eventNotification->event->id}");
     }
 }
