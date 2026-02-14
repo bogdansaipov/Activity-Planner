@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.')->group(function () {
@@ -24,6 +25,8 @@ Route::prefix('v1')->name('api.')->group(function () {
 
     Route::patch('/{id}/complete', [EventController::class, 'complete']); // action
 });
+
+Route::post('/telegram/webhook', TelegramWebhookController::class);
 
 
 });
