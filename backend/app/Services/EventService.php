@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Jobs\SendEventReminderJob;
 use App\Models\Event;
+use App\Models\EventNotification;
 use App\Models\User;
 use App\Repositories\Contracts\EventRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -23,14 +25,14 @@ class EventService
 
         $event = $this->eventsRepo->create($data);
 
-        $reminderTime = $event->scheduled_at
-        ->copy()
-        ->subMinutes($event->remind_before_minutes);
+        $notifyAt = Carbon::parse($event->scheduled_at)->subMinutes($event->remind_before_minutes);
 
-        if ($reminderTime->isFuture()) {
-        SendEventReminderJob::dispatch($event)
-            ->delay($reminderTime);
-        }
+        $notification = EventNotification::create([
+            'event_id' => $event->id,
+            'scheduled_for' => $notifyAt
+        ]);
+
+        SendEventReminderJob::dispatch($notification)->delay($notifyAt);
 
         return $event;
     }
